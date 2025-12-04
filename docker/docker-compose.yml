@@ -41,13 +41,13 @@ services:
     networks:
       - todo-network
     volumes:
-      - ./hasura/migrations:/hasura-migrations
-      - ./hasura/metadata:/hasura-metadata
+      - ../hasura/migrations:/hasura-migrations
+      - ../hasura/metadata:/hasura-metadata
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ../backend
+      dockerfile: ../docker/backend/Dockerfile
     container_name: todo-backend
     restart: always
     ports:
@@ -68,8 +68,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: ../frontend
+      dockerfile: ../docker/frontend/Dockerfile
       args:
         - NEXT_PUBLIC_HASURA_ENDPOINT=${NEXT_PUBLIC_HASURA_ENDPOINT:-http://localhost:8080/v1/graphql}
         - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}

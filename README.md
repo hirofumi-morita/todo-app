@@ -51,21 +51,24 @@ todo-app/
 │   │   ├── handler/      # HTTPハンドラー
 │   │   ├── middleware/   # ミドルウェア
 │   │   └── model/        # データモデル
-│   ├── go.mod
-│   └── Dockerfile
+│   └── go.mod
 ├── frontend/              # Next.jsフロントエンド
 │   ├── src/
 │   │   ├── app/          # Next.js App Router
 │   │   ├── components/   # Reactコンポーネント
 │   │   ├── lib/          # ユーティリティ関数
 │   │   └── types/        # TypeScript型定義
-│   ├── package.json
-│   └── Dockerfile
+│   └── package.json
 ├── hasura/               # Hasura設定
 │   ├── migrations/       # データベースマイグレーション
 │   ├── metadata/         # Hasuraメタデータ
 │   └── config.yaml
-├── docker-compose.yml    # Docker Compose設定
+├── docker/               # Docker設定ファイル
+│   ├── backend/
+│   │   └── Dockerfile    # バックエンド用Dockerfile
+│   ├── frontend/
+│   │   └── Dockerfile    # フロントエンド用Dockerfile
+│   └── docker-compose.yml # Docker Compose設定
 ├── .env.example          # 環境変数テンプレート
 └── README.md
 ```
@@ -115,7 +118,7 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 ### 3. アプリケーションの起動
 
 ```bash
-docker-compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 初回起動時は、イメージのビルドに数分かかる場合があります。
@@ -133,8 +136,8 @@ docker-compose up -d
 マイグレーションは自動的に適用されますが、手動で適用する場合は：
 
 ```bash
-docker-compose exec hasura hasura-cli migrate apply --database-name default
-docker-compose exec hasura hasura-cli metadata apply
+docker compose -f docker/docker-compose.yml exec hasura hasura-cli migrate apply --database-name default
+docker compose -f docker/docker-compose.yml exec hasura hasura-cli metadata apply
 ```
 
 ## 使い方
@@ -213,28 +216,28 @@ npm run dev
 
 ```bash
 # 全サービスのログ
-docker-compose logs -f
+docker compose -f docker/docker-compose.yml logs -f
 
 # 特定のサービスのログ
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f hasura
-docker-compose logs -f postgres
+docker compose -f docker/docker-compose.yml logs -f backend
+docker compose -f docker/docker-compose.yml logs -f frontend
+docker compose -f docker/docker-compose.yml logs -f hasura
+docker compose -f docker/docker-compose.yml logs -f postgres
 ```
 
 ## トラブルシューティング
 
 ### ポートが既に使用されている
 
-既に使用されているポートがある場合、`docker-compose.yml` のポート番号を変更してください。
+既に使用されているポートがある場合、`docker/docker-compose.yml` のポート番号を変更してください。
 
 ### データベース接続エラー
 
 PostgreSQLの起動を待ってから、バックエンドとHasuraが起動します。エラーが続く場合は：
 
 ```bash
-docker-compose down -v
-docker-compose up -d
+docker compose -f docker/docker-compose.yml down -v
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 ### フロントエンドが起動しない
@@ -242,9 +245,9 @@ docker-compose up -d
 ビルドエラーの場合、依存関係を再インストール：
 
 ```bash
-docker-compose down
-docker-compose build --no-cache frontend
-docker-compose up -d
+docker compose -f docker/docker-compose.yml down
+docker compose -f docker/docker-compose.yml build --no-cache frontend
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 ## セキュリティに関する注意

@@ -1,0 +1,115 @@
+.todoItem {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.todoItem.completed {
+  opacity: 0.6;
+}
+
+.checkbox {
+  margin-top: 4px;
+}
+
+.checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.content {
+  flex: 1;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.completed .title {
+  text-decoration: line-through;
+}
+
+.description {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.editButton,
+.deleteButton,
+.saveButton,
+.cancelButton {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.editButton {
+  background-color: #0070f3;
+  color: white;
+}
+
+.editButton:hover {
+  background-color: #0051cc;
+}
+
+.deleteButton {
+  background-color: #e00;
+  color: white;
+}
+
+.deleteButton:hover {
+  background-color: #c00;
+}
+
+.saveButton {
+  background-color: #0a0;
+  color: white;
+}
+
+.saveButton:hover {
+  background-color: #080;
+}
+
+.cancelButton {
+  background-color: #888;
+  color: white;
+}
+
+.cancelButton:hover {
+  background-color: #666;
+}
+
+.input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  min-height: 60px;
+  resize: vertical;
+}

@@ -1,0 +1,108 @@
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.header {
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.adminButton {
+  padding: 8px 16px;
+  background-color: #f90;
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.adminButton:hover {
+  background-color: #e80;
+}
+
+.logoutButton {
+  padding: 8px 16px;
+  background-color: #e00;
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.logoutButton:hover {
+  background-color: #c00;
+}
+
+.main {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.createForm {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.createButton {
+  padding: 12px 24px;
+  background-color: #0070f3;
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.createButton:hover {
+  background-color: #0051cc;
+}
+
+.todoList {
+  margin-top: 24px;
+}
+
+.emptyMessage {
+  text-align: center;
+  color: #999;
+  padding: 40px;
+}

@@ -1,0 +1,60 @@
+table:
+  name: users
+  schema: public
+object_relationships: []
+array_relationships:
+  - name: todos
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: todos
+          schema: public
+insert_permissions:
+  - role: anonymous
+    permission:
+      check: {}
+      columns:
+        - email
+        - password_hash
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - id
+        - email
+        - role
+        - created_at
+        - updated_at
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
+  - role: admin
+    permission:
+      columns:
+        - id
+        - email
+        - role
+        - created_at
+        - updated_at
+      filter: {}
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - email
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: admin
+    permission:
+      columns:
+        - email
+        - role
+      filter: {}
+      check: null
+delete_permissions:
+  - role: admin
+    permission:
+      filter: {}

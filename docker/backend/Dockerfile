@@ -1,27 +1,28 @@
+# dockerfile
 FROM golang:1.21-alpine AS builder
 
-WORKDIR /app
+# バックエンドのモジュールルートを作業ディレクトリに設定
+WORKDIR /app/backend
 
-# Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
+# modulesファイルのみコピー（go.sum は無くても可）
+COPY backend/go.mod .
+# go.mod だけでダウンロードを試行（足りない分は後で tidy）
+RUN go mod download || true
 
-# Copy source code
-COPY . .
+# バックエンドのソースをコピー
+COPY backend/ .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/server
+# 依存関係を解決して go.sum を生成
+RUN go mod tidy
 
-# Final stage
+# バックエンドをビルド
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main ./cmd/server
+
+# 実行ステージ
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
-
-WORKDIR /root/
-
-# Copy the binary from builder
+WORKDIR /app
 COPY --from=builder /app/main .
 
 EXPOSE 8000
-
 CMD ["./main"]

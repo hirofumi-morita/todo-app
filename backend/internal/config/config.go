@@ -5,11 +5,11 @@ import (
 )
 
 type Config struct {
-	DatabaseURL          string
-	JWTSecret            string
-	HasuraEndpoint       string
-	HasuraAdminSecret    string
-	ServerPort           string
+	DatabaseURL       string
+	JWTSecret         string
+	HasuraEndpoint    string
+	HasuraAdminSecret string
+	ServerPort        string
 }
 
 func Load() *Config {

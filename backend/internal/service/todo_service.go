@@ -1,9 +1,7 @@
 package service
 
 import (
-	"database/sql"
 	"errors"
-	"fmt"
 	"todo-app/backend/internal/model"
 
 	"github.com/google/uuid"
@@ -15,158 +13,167 @@ var (
 )
 
 type TodoService struct {
-	db *sql.DB
+	hasura *HasuraClient
 }
 
-func NewTodoService(db *sql.DB) *TodoService {
-	return &TodoService{db: db}
+func NewTodoService(hasura *HasuraClient) *TodoService {
+	return &TodoService{hasura: hasura}
 }
 
 // GetTodos retrieves all todos for a user
 func (s *TodoService) GetTodos(userID uuid.UUID) ([]model.Todo, error) {
-	rows, err := s.db.Query(
-		`SELECT id, user_id, title, description, completed, created_at, updated_at
-		FROM todos WHERE user_id = $1 ORDER BY created_at DESC`,
-		userID,
-	)
+	var response struct {
+		Todos []model.Todo `json:"todos"`
+	}
+
+	err := s.hasura.execute(`
+        query ($userId: uuid!) {
+          todos(where: {user_id: {_eq: $userId}}, order_by: {created_at: desc}) {
+            id
+            user_id
+            title
+            description
+            completed
+            created_at
+            updated_at
+          }
+        }
+        `, map[string]interface{}{"userId": userID}, &response)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	todos := []model.Todo{}
-	for rows.Next() {
-		var todo model.Todo
-		err := rows.Scan(
-			&todo.ID, &todo.UserID, &todo.Title, &todo.Description,
-			&todo.Completed, &todo.CreatedAt, &todo.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		todos = append(todos, todo)
-	}
-
-	return todos, nil
+	return response.Todos, nil
 }
 
 // GetTodo retrieves a specific todo for a user
 func (s *TodoService) GetTodo(userID, todoID uuid.UUID) (*model.Todo, error) {
-	var todo model.Todo
-	err := s.db.QueryRow(
-		`SELECT id, user_id, title, description, completed, created_at, updated_at
-		FROM todos WHERE id = $1 AND user_id = $2`,
-		todoID, userID,
-	).Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Description,
-		&todo.Completed, &todo.CreatedAt, &todo.UpdatedAt)
-
-	if err == sql.ErrNoRows {
-		return nil, ErrTodoNotFound
+	var response struct {
+		Todos []model.Todo `json:"todos"`
 	}
 
+	err := s.hasura.execute(`
+        query ($id: uuid!, $userId: uuid!) {
+          todos(where: {id: {_eq: $id}, user_id: {_eq: $userId}}, limit: 1) {
+            id
+            user_id
+            title
+            description
+            completed
+            created_at
+            updated_at
+          }
+        }
+        `, map[string]interface{}{"id": todoID, "userId": userID}, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	return &todo, nil
+	if len(response.Todos) == 0 {
+		return nil, ErrTodoNotFound
+	}
+
+	return &response.Todos[0], nil
 }
 
 // CreateTodo creates a new todo for a user
 func (s *TodoService) CreateTodo(userID uuid.UUID, title string, description *string) (*model.Todo, error) {
-	var todo model.Todo
-	err := s.db.QueryRow(
-		`INSERT INTO todos (user_id, title, description)
-		VALUES ($1, $2, $3)
-		RETURNING id, user_id, title, description, completed, created_at, updated_at`,
-		userID, title, description,
-	).Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Description,
-		&todo.Completed, &todo.CreatedAt, &todo.UpdatedAt)
+	var response struct {
+		InsertTodosOne model.Todo `json:"insert_todos_one"`
+	}
 
+	err := s.hasura.execute(`
+        mutation ($userId: uuid!, $title: String!, $description: String) {
+          insert_todos_one(object: {user_id: $userId, title: $title, description: $description}) {
+            id
+            user_id
+            title
+            description
+            completed
+            created_at
+            updated_at
+          }
+        }
+        `, map[string]interface{}{"userId": userID, "title": title, "description": description}, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	return &todo, nil
+	return &response.InsertTodosOne, nil
 }
 
 // UpdateTodo updates a todo for a user
 func (s *TodoService) UpdateTodo(userID, todoID uuid.UUID, req model.UpdateTodoRequest) (*model.Todo, error) {
-	// Check if todo exists and belongs to user
-	var exists bool
-	err := s.db.QueryRow(
-		`SELECT EXISTS(SELECT 1 FROM todos WHERE id = $1 AND user_id = $2)`,
-		todoID, userID,
-	).Scan(&exists)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if !exists {
-		return nil, ErrTodoNotFound
-	}
-
-	// Build update query dynamically
-	query := "UPDATE todos SET updated_at = NOW()"
-	args := []interface{}{}
-	argCount := 1
+	changes := map[string]interface{}{}
 
 	if req.Title != nil {
-		query += ", title = $" + fmt.Sprintf("%d", argCount)
-		args = append(args, *req.Title)
-		argCount++
+		changes["title"] = *req.Title
 	}
 
 	if req.Description != nil {
-		query += ", description = $" + fmt.Sprintf("%d", argCount)
-		args = append(args, *req.Description)
-		argCount++
+		changes["description"] = req.Description
 	}
 
 	if req.Completed != nil {
-		query += ", completed = $" + fmt.Sprintf("%d", argCount)
-		args = append(args, *req.Completed)
-		argCount++
+		changes["completed"] = *req.Completed
 	}
 
-	query += " WHERE id = $" + fmt.Sprintf("%d", argCount) + " AND user_id = $" + fmt.Sprintf("%d", argCount+1)
-	args = append(args, todoID, userID)
+	if len(changes) == 0 {
+		return s.GetTodo(userID, todoID)
+	}
 
-	// Execute update
-	_, err = s.db.Exec(query, args...)
+	var response struct {
+		UpdateTodos struct {
+			Returning []model.Todo `json:"returning"`
+		} `json:"update_todos"`
+	}
+
+	err := s.hasura.execute(`
+        mutation ($id: uuid!, $userId: uuid!, $changes: todos_set_input!) {
+          update_todos(where: {id: {_eq: $id}, user_id: {_eq: $userId}}, _set: $changes) {
+            returning {
+              id
+              user_id
+              title
+              description
+              completed
+              created_at
+              updated_at
+            }
+          }
+        }
+        `, map[string]interface{}{"id": todoID, "userId": userID, "changes": changes}, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	// Fetch updated todo
-	var todo model.Todo
-	err = s.db.QueryRow(
-		`SELECT id, user_id, title, description, completed, created_at, updated_at
-		FROM todos WHERE id = $1`,
-		todoID,
-	).Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Description,
-		&todo.Completed, &todo.CreatedAt, &todo.UpdatedAt)
-
-	if err != nil {
-		return nil, err
+	if len(response.UpdateTodos.Returning) == 0 {
+		return nil, ErrTodoNotFound
 	}
 
-	return &todo, nil
+	return &response.UpdateTodos.Returning[0], nil
 }
 
 // DeleteTodo deletes a todo for a user
 func (s *TodoService) DeleteTodo(userID, todoID uuid.UUID) error {
-	result, err := s.db.Exec(
-		`DELETE FROM todos WHERE id = $1 AND user_id = $2`,
-		todoID, userID,
-	)
+	var response struct {
+		DeleteTodos struct {
+			AffectedRows int `json:"affected_rows"`
+		} `json:"delete_todos"`
+	}
 
+	err := s.hasura.execute(`
+        mutation ($id: uuid!, $userId: uuid!) {
+          delete_todos(where: {id: {_eq: $id}, user_id: {_eq: $userId}}) {
+            affected_rows
+          }
+        }
+        `, map[string]interface{}{"id": todoID, "userId": userID}, &response)
 	if err != nil {
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
+	if response.DeleteTodos.AffectedRows == 0 {
 		return ErrTodoNotFound
 	}
 

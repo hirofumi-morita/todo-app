@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"todo-app/backend/internal/config"
@@ -11,31 +10,19 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 )
 
 func main() {
 	// Load configuration
 	cfg := config.Load()
 
-	// Connect to database
-	db, err := sql.Open("postgres", cfg.DatabaseURL)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-	defer db.Close()
-
-	// Test database connection
-	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
-	}
-
-	log.Println("Successfully connected to database")
+	// Initialize Hasura GraphQL client
+	hasuraClient := service.NewHasuraClient(cfg.HasuraEndpoint, cfg.HasuraAdminSecret)
 
 	// Initialize services
-	authService := service.NewAuthService(db, cfg.JWTSecret)
-	todoService := service.NewTodoService(db)
-	userService := service.NewUserService(db)
+	authService := service.NewAuthService(hasuraClient, cfg.JWTSecret)
+	todoService := service.NewTodoService(hasuraClient)
+	userService := service.NewUserService(hasuraClient)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)

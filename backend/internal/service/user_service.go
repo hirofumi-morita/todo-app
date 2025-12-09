@@ -1,7 +1,6 @@
 package service
 
 import (
-	"database/sql"
 	"errors"
 	"todo-app/backend/internal/model"
 
@@ -13,76 +12,91 @@ var (
 )
 
 type UserService struct {
-	db *sql.DB
+	hasura *HasuraClient
 }
 
-func NewUserService(db *sql.DB) *UserService {
-	return &UserService{db: db}
+func NewUserService(hasura *HasuraClient) *UserService {
+	return &UserService{hasura: hasura}
 }
 
 // GetAllUsers retrieves all users (admin function)
 func (s *UserService) GetAllUsers() ([]model.User, error) {
-	rows, err := s.db.Query(
-		`SELECT id, email, role, created_at, updated_at
-		FROM users ORDER BY created_at DESC`,
-	)
+	var response struct {
+		Users []model.User `json:"users"`
+	}
+
+	err := s.hasura.execute(`
+        query {
+          users(order_by: {created_at: desc}) {
+            id
+            email
+            role
+            created_at
+            updated_at
+          }
+        }
+        `, nil, &response)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	users := []model.User{}
-	for rows.Next() {
-		var user model.User
-		err := rows.Scan(&user.ID, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, user)
-	}
-
-	return users, nil
+	return response.Users, nil
 }
 
 // GetUser retrieves a specific user by ID (admin function)
 func (s *UserService) GetUser(userID uuid.UUID) (*model.User, error) {
-	var user model.User
-	err := s.db.QueryRow(
-		`SELECT id, email, role, created_at, updated_at
-		FROM users WHERE id = $1`,
-		userID,
-	).Scan(&user.ID, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
-
-	if err == sql.ErrNoRows {
-		return nil, ErrUserNotFound
+	var response struct {
+		UsersByPk *model.User `json:"users_by_pk"`
 	}
 
+	err := s.hasura.execute(`
+        query ($id: uuid!) {
+          users_by_pk(id: $id) {
+            id
+            email
+            role
+            created_at
+            updated_at
+          }
+        }
+        `, map[string]interface{}{"id": userID}, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	if response.UsersByPk == nil {
+		return nil, ErrUserNotFound
+	}
+
+	return response.UsersByPk, nil
 }
 
 // UpdateUserRole updates a user's role (admin function)
 func (s *UserService) UpdateUserRole(userID uuid.UUID, role string) (*model.User, error) {
-	var user model.User
-	err := s.db.QueryRow(
-		`UPDATE users SET role = $1, updated_at = NOW()
-		WHERE id = $2
-		RETURNING id, email, role, created_at, updated_at`,
-		role, userID,
-	).Scan(&user.ID, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
-
-	if err == sql.ErrNoRows {
-		return nil, ErrUserNotFound
+	var response struct {
+		UpdateUsersByPk *model.User `json:"update_users_by_pk"`
 	}
 
+	err := s.hasura.execute(`
+        mutation ($id: uuid!, $role: String!) {
+          update_users_by_pk(pk_columns: {id: $id}, _set: {role: $role}) {
+            id
+            email
+            role
+            created_at
+            updated_at
+          }
+        }
+        `, map[string]interface{}{"id": userID, "role": role}, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	if response.UpdateUsersByPk == nil {
+		return nil, ErrUserNotFound
+	}
+
+	return response.UpdateUsersByPk, nil
 }
 
 // DeleteUser deletes a user (admin function)
@@ -92,13 +106,24 @@ func (s *UserService) DeleteUser(currentUserID, targetUserID uuid.UUID) error {
 		return ErrCannotDeleteSelf
 	}
 
-	result, err := s.db.Exec(`DELETE FROM users WHERE id = $1`, targetUserID)
+	var response struct {
+		DeleteUsersByPk *struct {
+			ID uuid.UUID `json:"id"`
+		} `json:"delete_users_by_pk"`
+	}
+
+	err := s.hasura.execute(`
+        mutation ($id: uuid!) {
+          delete_users_by_pk(id: $id) {
+            id
+          }
+        }
+        `, map[string]interface{}{"id": targetUserID}, &response)
 	if err != nil {
 		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
+	if response.DeleteUsersByPk == nil {
 		return ErrUserNotFound
 	}
 
@@ -107,28 +132,26 @@ func (s *UserService) DeleteUser(currentUserID, targetUserID uuid.UUID) error {
 
 // GetAllTodos retrieves all todos from all users (admin function)
 func (s *UserService) GetAllTodos() ([]model.Todo, error) {
-	rows, err := s.db.Query(
-		`SELECT t.id, t.user_id, t.title, t.description, t.completed, t.created_at, t.updated_at
-		FROM todos t
-		ORDER BY t.created_at DESC`,
-	)
+	var response struct {
+		Todos []model.Todo `json:"todos"`
+	}
+
+	err := s.hasura.execute(`
+        query {
+          todos(order_by: {created_at: desc}) {
+            id
+            user_id
+            title
+            description
+            completed
+            created_at
+            updated_at
+          }
+        }
+        `, nil, &response)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	todos := []model.Todo{}
-	for rows.Next() {
-		var todo model.Todo
-		err := rows.Scan(
-			&todo.ID, &todo.UserID, &todo.Title, &todo.Description,
-			&todo.Completed, &todo.CreatedAt, &todo.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		todos = append(todos, todo)
-	}
-
-	return todos, nil
+	return response.Todos, nil
 }

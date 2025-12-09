@@ -7,6 +7,7 @@ import (
 	"todo-app/backend/internal/config"
 	"todo-app/backend/internal/handler"
 	"todo-app/backend/internal/middleware"
+	"todo-app/backend/internal/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,16 @@ func main() {
 
 	log.Println("Successfully connected to database")
 
+	// Initialize services
+	authService := service.NewAuthService(db, cfg.JWTSecret)
+	todoService := service.NewTodoService(db)
+	userService := service.NewUserService(db)
+
+	// Initialize handlers
+	authHandler := handler.NewAuthHandler(authService)
+	todoHandler := handler.NewTodoHandler(todoService)
+	adminHandler := handler.NewAdminHandler(userService)
+
 	// Initialize Gin router
 	r := gin.Default()
 
@@ -47,11 +58,6 @@ func main() {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
-
-	// Initialize handlers
-	authHandler := handler.NewAuthHandler(db, cfg.JWTSecret)
-	todoHandler := handler.NewTodoHandler(db)
-	adminHandler := handler.NewAdminHandler(db)
 
 	// Public routes
 	public := r.Group("/api")

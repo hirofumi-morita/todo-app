@@ -84,6 +84,27 @@ services:
     networks:
       - todo-network
 
+  backend-test:
+    image: golang:1.21-alpine
+    container_name: todo-backend-test
+    working_dir: /app/backend
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hasura:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-todo_db}?sslmode=disable
+      HASURA_GRAPHQL_ENDPOINT: http://hasura:8080/v1/graphql
+      HASURA_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-hasura_admin_secret}
+      JWT_SECRET: ${JWT_SECRET:-your-256-bit-secret-key-change-this-in-production}
+      GIN_MODE: ${GIN_MODE:-debug}
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      - todo-network
+
 volumes:
   postgres_data:
 

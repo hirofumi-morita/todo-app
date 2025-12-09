@@ -3,7 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"todo-app/backend/internal/model"
+
 	"todo-app/backend/internal/service"
 
 	"github.com/gin-gonic/gin"

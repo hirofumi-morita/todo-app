@@ -209,19 +209,19 @@ go run cmd/server/main.go
 todo-backend-testコンテナで実行します：
 
 ```bash
-go mod download
+docker-compose exec backend-test go mod download
 
 # パッケージ全体のテストを詳細表示で実行
-go test ./backend/internal/service -v
+docker-compose exec backend-test go test ./internal/service -v
 
 # 個別のテスト関数を実行（例）
-go test ./backend/internal/service -run TestTodoService_GetTodos -v
+docker-compose exec backend-test go test ./internal/service -run TestTodoService_GetTodos -v
 
 # サブテストを指定して実行（名前にスペースがある場合はダブルクォート）
-go test ./backend/internal/service -run "TestTodoService_UpdateTodo/with changes" -v
+docker-compose exec backend-test go test ./internal/service -run "TestTodoService_UpdateTodo/with changes" -v
 
 # race detector を有効にして実行
-go test ./backend/internal/service -race -v
+docker-compose exec backend-test go test ./internal/service -race -v
 ```
 
 ### フロントエンドの開発

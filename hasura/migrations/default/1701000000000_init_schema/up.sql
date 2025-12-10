@@ -1,3 +1,6 @@
+-- Enable pgcrypto for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- Create users table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -26,24 +29,24 @@ CREATE TABLE todos (
 CREATE INDEX idx_todos_user_id ON todos(user_id);
 
 -- Create function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--     NEW.updated_at = NOW();
+--     RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 -- Create triggers for updated_at
-CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- CREATE TRIGGER update_users_updated_at
+--     BEFORE UPDATE ON users
+--     FOR EACH ROW
+--     EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_todos_updated_at
-    BEFORE UPDATE ON todos
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- CREATE TRIGGER update_todos_updated_at
+--     BEFORE UPDATE ON todos
+--     FOR EACH ROW
+--     EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert default admin user (password: admin123)
 -- Password hash generated with bcrypt cost 10

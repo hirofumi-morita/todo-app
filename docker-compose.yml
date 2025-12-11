@@ -42,6 +42,22 @@ services:
       - ./hasura/migrations:/hasura-migrations
       - ./hasura/metadata:/hasura-metadata
 
+  # hasura-cli:
+  #   image: hasura/graphql-engine:v2.36.0.cli-migrations-v3
+  #   container_name: todo-hasura-cli
+  #   depends_on:
+  #     hasura:
+  #       condition: service_started
+  #   volumes:
+  #     - ./hasura:/hasura-project
+  #   working_dir: /hasura-project
+  #   environment:
+  #     HASURA_GRAPHQL_ENDPOINT: http://hasura:8080
+  #     HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-hasura_admin_secret}
+  #   networks:
+  #     - todo-network
+  #   command: ["tail", "-f", "/dev/null"]
+
   backend:
     build:
       context: .

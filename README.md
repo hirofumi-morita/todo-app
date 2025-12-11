@@ -224,6 +224,22 @@ docker-compose exec backend-test go test ./internal/service -run "TestTodoServic
 docker-compose exec backend-test go test ./internal/service -race -v
 ```
 
+### Hasura Cliのコマンド
+
+```bash
+# npmでインストール
+npm install --global hasura-cli
+
+# 確認
+hasura version
+
+# 使用例
+cd hasura
+hasura migrate create "init" --endpoint http://localhost:8080 --admin-secret hasura_admin_secret
+hasura migrate apply --endpoint http://localhost:8080 --admin-secret hasura_admin_secret
+hasura metadata export --endpoint http://localhost:8080 --admin-secret hasura_admin_secret
+```
+
 ### フロントエンドの開発
 
 ```bash

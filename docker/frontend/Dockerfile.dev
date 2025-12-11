@@ -1,0 +1,23 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=development
+
+# dev env vars are passed through so Next.js can read them at runtime
+ARG NEXT_PUBLIC_HASURA_ENDPOINT
+ARG NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_HASURA_ENDPOINT=$NEXT_PUBLIC_HASURA_ENDPOINT
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+
+# Install dependencies separately to leverage Docker layer cache
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci || npm install
+
+# Bring in source; this will be overridden by the bind mount in docker-compose for hot reload
+COPY frontend/ .
+
+EXPOSE 3000
+
+# Run Next.js dev server for hot reload
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]

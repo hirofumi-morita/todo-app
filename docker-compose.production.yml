@@ -42,22 +42,6 @@ services:
       - ./hasura/migrations:/hasura-migrations
       - ./hasura/metadata:/hasura-metadata
 
-  # hasura-cli:
-  #   image: hasura/graphql-engine:v2.36.0.cli-migrations-v3
-  #   container_name: todo-hasura-cli
-  #   depends_on:
-  #     hasura:
-  #       condition: service_started
-  #   volumes:
-  #     - ./hasura:/hasura-project
-  #   working_dir: /hasura-project
-  #   environment:
-  #     HASURA_GRAPHQL_ENDPOINT: http://hasura:8080
-  #     HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-hasura_admin_secret}
-  #   networks:
-  #     - todo-network
-  #   command: ["tail", "-f", "/dev/null"]
-
   backend:
     build:
       context: .
@@ -80,17 +64,15 @@ services:
     networks:
       - todo-network
 
-
-  ## 開発用 frontend (hot reload)
   frontend:
     build:
       context: .
-      dockerfile: ./docker/frontend/Dockerfile.dev
+      dockerfile: ./docker/frontend/Dockerfile
       args:
         - NEXT_PUBLIC_HASURA_ENDPOINT=${NEXT_PUBLIC_HASURA_ENDPOINT:-http://localhost:8080/v1/graphql}
         - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
     container_name: todo-frontend
-    restart: unless-stopped
+    restart: always
     ports:
       - "3000:3000"
     depends_on:
@@ -99,10 +81,6 @@ services:
     environment:
       NEXT_PUBLIC_HASURA_ENDPOINT: ${NEXT_PUBLIC_HASURA_ENDPOINT:-http://localhost:8080/v1/graphql}
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
     networks:
       - todo-network
 

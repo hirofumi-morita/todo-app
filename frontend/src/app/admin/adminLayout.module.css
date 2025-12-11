@@ -1,0 +1,28 @@
+.layout {
+  position: relative;
+  min-height: 100vh;
+  background:
+    radial-gradient(140% 120% at 20% 20%, rgba(37, 99, 235, 0.2), rgba(5, 8, 20, 0) 50%),
+    radial-gradient(120% 120% at 85% 10%, rgba(16, 185, 129, 0.14), rgba(5, 8, 20, 0) 45%),
+    linear-gradient(180deg, #050814 0%, #0b1224 45%, #050814 100%);
+  color: #e8ecf8;
+  overflow: hidden;
+  padding: 32px 0 56px;
+  color-scheme: dark;
+}
+
+.layout::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 40%);
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+}

@@ -1,32 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated, logout, getUser, isAdmin } from '@/lib/auth';
 import { getTodos, createTodo, updateTodo, deleteTodo } from '@/lib/api';
 import { Todo } from '@/types';
+import { useAuthGuard } from '@/hooks/useAuth';
 import TodoItem from '@/components/TodoItem';
 import styles from './dashboard.module.css';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const {
+    user,
+    isLoading: authLoading,
+    isAuthenticated,
+    isAdmin: hasAdminRole,
+    logout: logoutAndRedirect,
+  } = useAuthGuard({
+    redirectTo: '/login',
+  });
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTodoTitle, setNewTodoTitle] = useState('');
   const [newTodoDescription, setNewTodoDescription] = useState('');
-  const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/login');
-      return;
-    }
-
-    setUser(getUser());
-    loadTodos();
-  }, [router]);
-
-  const loadTodos = async () => {
+  const loadTodos = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await getTodos();
       setTodos(data);
@@ -35,7 +34,13 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadTodos();
+    }
+  }, [isAuthenticated, loadTodos]);
 
   const handleCreateTodo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,12 +79,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
-
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className={styles.container}>
         <p>読み込み中...</p>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
         <h1>TODO管理アプリ</h1>
         <div className={styles.userInfo}>
           <span>{user?.email}</span>
-          {isAdmin() && (
+          {hasAdminRole && (
             <button
               onClick={() => router.push('/admin')}
               className={styles.adminButton}
@@ -101,7 +101,7 @@ export default function DashboardPage() {
               管理画面
             </button>
           )}
-          <button onClick={handleLogout} className={styles.logoutButton}>
+          <button onClick={logoutAndRedirect} className={styles.logoutButton}>
             ログアウト
           </button>
         </div>

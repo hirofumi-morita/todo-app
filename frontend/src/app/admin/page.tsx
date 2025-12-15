@@ -1,29 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated, isAdmin, logout } from '@/lib/auth';
 import { getAllUsers, updateUserRole, deleteUser, getAllTodosAdmin } from '@/lib/api';
 import { User, Todo } from '@/types';
+import { useAuthGuard } from '@/hooks/useAuth';
 import styles from './admin.module.css';
 
 export default function AdminPage() {
   const router = useRouter();
+  const {
+    isLoading: authLoading,
+    isAuthenticated,
+    logout: logoutAndRedirect,
+  } = useAuthGuard({
+    redirectTo: '/dashboard',
+    requireAdmin: true,
+  });
   const [users, setUsers] = useState<User[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'todos'>('users');
 
-  useEffect(() => {
-    if (!isAuthenticated() || !isAdmin()) {
-      router.push('/dashboard');
-      return;
-    }
-
-    loadData();
-  }, [router]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    setLoading(true);
     try {
       const [usersData, todosData] = await Promise.all([
         getAllUsers(),
@@ -36,7 +36,13 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadData();
+    }
+  }, [isAuthenticated, loadData]);
 
   const handleUpdateRole = async (userId: string, newRole: string) => {
     try {
@@ -44,7 +50,7 @@ export default function AdminPage() {
       setUsers(users.map(user =>
         user.id === userId ? { ...user, role: newRole } : user
       ));
-      alert('ユーザーロールを更新しました');
+      alert('ユーザーのロールを更新しました');
     } catch (error) {
       console.error('Failed to update role:', error);
       alert('ロールの更新に失敗しました');
@@ -64,12 +70,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
-
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className={styles.container}>
         <p>読み込み中...</p>
@@ -88,7 +89,7 @@ export default function AdminPage() {
           >
             ダッシュボードに戻る
           </button>
-          <button onClick={handleLogout} className={styles.logoutButton}>
+          <button onClick={logoutAndRedirect} className={styles.logoutButton}>
             ログアウト
           </button>
         </div>
@@ -100,7 +101,7 @@ export default function AdminPage() {
             className={`${styles.tab} ${activeTab === 'users' ? styles.activeTab : ''}`}
             onClick={() => setActiveTab('users')}
           >
-            ユーザー管理 ({users.length})
+            ユーザー一覧 ({users.length})
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'todos' ? styles.activeTab : ''}`}
@@ -112,14 +113,14 @@ export default function AdminPage() {
 
         {activeTab === 'users' && (
           <div className={styles.section}>
-            <h2>ユーザー一覧</h2>
+            <h2>ユーザー管理</h2>
             <div className={styles.table}>
               <table>
                 <thead>
                   <tr>
                     <th>メールアドレス</th>
                     <th>ロール</th>
-                    <th>登録日</th>
+                    <th>登録日時</th>
                     <th>操作</th>
                   </tr>
                 </thead>
